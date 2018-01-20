@@ -34,10 +34,10 @@ class k_nearest_neighbors_model:
         self.data_points = len(data_train)
 
 
-    def predict(self, test_data):
+    def predict(self, test_data, k):
 
-        k = 3
         tree = KDTree(self.data_train, leaf_size=2)
+
 
         test_results = list()
 
@@ -45,9 +45,32 @@ class k_nearest_neighbors_model:
         for i in range(len(test_data)):
             # Get the list of k nearest neighbors
             dist, ind = tree.query(test_data, k)
-            index = ind[i, 0]
-            val = self.data_target[index]
+
+            # ind returns a list of indexes for nearest neighbors.
+            # Create a dictionary list of values for target values and number of knn who have it
+
+            # Dictionary for storing possible values as keyes and number of occournces of said value as values
+            target_occurrence_dict = dict()
+            # Cycle through every single knn
+            for j in range(len(ind[i])):
+                # Find the data index of the knn and index j
+                index = ind[i, j]
+                # Find it's test value
+                target_value = self.data_target[index]
+
+                # Set the dictionary target_key's value.
+                if target_value in target_occurrence_dict:
+                    target_occurrence_dict[target_value] += 1
+                else:
+                    target_occurrence_dict[target_value] = 1
+
+            # Sort the dictionary
+            val = max(target_occurrence_dict, key=target_occurrence_dict.get)
             test_results.append(val)
+
+            #index = ind[i, 0]
+            #val = self.data_target[index]
+            #test_results.append(val)
             # Add up their values
             # set our friend to the closest one
                 # resolve ties
@@ -121,10 +144,11 @@ def print_iris_data():
 # Runs the k nearest neighbors tests
 def run_k_nearest_neighbors_test():
     print("Running K Nearest Neighbors Test!")
+    k=9
     iris, data_train, data_test, targets_train, targets_test = setup_test()
     classifier = K_Nearest_Neighbors_Classifier()
     model = classifier.fit(targets_train, data_train)
-    predicted = model.predict(data_test)
+    predicted = model.predict(data_test, k)
     print("Percent correct: ", compare_prediction(targets_test, predicted), "%\n")
     print("Test Finished")
     return 0
