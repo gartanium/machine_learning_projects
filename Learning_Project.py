@@ -3,7 +3,8 @@ from datetime import datetime
 from sklearn import datasets
 from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
-
+from sklearn.neighbors import KDTree
+import numpy as n
 
 # Class for running an option whenever a specified word is passed in.
 class Option:
@@ -19,9 +20,47 @@ class Option:
         else:
             return self.option_dict['default']()
 
-    # Default option to be executed when an improper option is given
+    # default option to be executed when an improper option is given
     def set_default_option(self, func):
         self.option_dict['default'] = func
+
+
+# k-nearest-neighbors
+class k_nearest_neighbors_model:
+
+    def __init__(self, data_target, data_train):
+        self.data_target = data_target
+        self.data_train = data_train
+        self.data_points = len(data_train)
+
+
+    def predict(self, test_data):
+
+        k = 3
+        tree = KDTree(self.data_train, leaf_size=2)
+
+        test_results = list()
+
+        # Cycle through every single test_data point
+        for i in range(len(test_data)):
+            # Get the list of k nearest neighbors
+            dist, ind = tree.query(test_data, k)
+            index = ind[i, 0]
+            val = self.data_target[index]
+            test_results.append(val)
+            # Add up their values
+            # set our friend to the closest one
+                # resolve ties
+
+        return test_results
+
+
+# K-Nearest-Neighbors-Classifier
+class K_Nearest_Neighbors_Classifier:
+
+    def fit(self, data_target, data_train):
+        return k_nearest_neighbors_model(data_target, data_train)
+
 
 # Test class
 class HardCodedModel:
@@ -79,6 +118,16 @@ def print_iris_data():
     print(iris.target_names)
     return 0
 
+# Runs the k nearest neighbors tests
+def run_k_nearest_neighbors_test():
+    print("Running K Nearest Neighbors Test!")
+    iris, data_train, data_test, targets_train, targets_test = setup_test()
+    classifier = K_Nearest_Neighbors_Classifier()
+    model = classifier.fit(targets_train, data_train)
+    predicted = model.predict(data_test)
+    print("Percent correct: ", compare_prediction(targets_test, predicted), "%\n")
+    print("Test Finished")
+    return 0
 
 # Runs the hard coded test, which we expect to get very poor results
 def run_hardcode_test():
@@ -103,9 +152,11 @@ def run_gussian_test():
     print("Test Finished")
     return 0
 
+
 def default_msg():
     print("Improper command! Type the command [help] for help or [quit] to exit the program!")
     return 0
+
 
 # Executes a given option
 def execute_option(options):
@@ -122,7 +173,7 @@ def get_option():
 
 def help():
     print("Choose option [quit] to quit, option [hardcoded] to run the hardcoded test, option [gussian] "
-          "to run the gussian test, and option [print] to print "
+          "to run the gussian test, option [knn] to run k-nearest neighbors test, and option [print] to print "
           "Iris data.")
     return 0
 
@@ -140,7 +191,9 @@ def initialize_program(options):
     options.add_option("print", print_iris_data)
     options.add_option("help", help)
     options.add_option("quit", end_program)
+    options.add_option("knn", run_k_nearest_neighbors_test)
     options.set_default_option(default_msg)
+
 
 # Main entry point for the application.
 def main():
