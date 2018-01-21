@@ -6,60 +6,7 @@ from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KDTree
 import numpy as n
 import bisect
-
-class Node:
-    def __init__(self, data):
-        self.data = data
-        self.children = []
-
-    def add_child(self, obj):
-        self.children.append(obj)
-
-class Simple_NN:
-    def __init_(self, data_train):
-        self.data_train = data_train
-
-    def query(self, data_test, k):
-        list_index = list()
-        list_values = list()
-        values_dict = dict()
-        # Generate lists
-
-        # Compare the distances between data_test and data_train
-        for i in range(len(self.data_test)):
-            for j in range(len(self.data_train)):
-
-                a = self.data_test[i]
-                b = self.data_train[j]
-                dist = n.linalg.norm(a - b)
-                values_dict[i] = dist
-
-        # Find the k nearest neighbors and return them.
-        for i in range(k):
-            val = max(values_dict, key=values_dict.get)
-            list_index.append(val)
-            list_values.append(list_index[i])
-            del values_dict[val]
-
-class KD_Tree_Custom:
-    def __init__(self, data_train, leaf_size):
-        self.data_train = data_train
-        self.leaf_size = leaf_size
-
-    def generate_tree(self):
-        pass
-
-    # Returns the median value and it's index
-    def find_median(self, dimension, list):
-
-        list_one_dimension = list()
-        # Create a list containing only the given dimension
-        for i in range(len(list[0])):
-            bisect.insort(list_one_dimension, list[i, dimension])
-
-        index = int(len(list_one_dimension)/2)
-        value = list_one_dimension[index]
-        return value, index
+from operator import itemgetter
 
 # Class for running an option whenever a specified word is passed in.
 class Option:
@@ -79,6 +26,61 @@ class Option:
     def set_default_option(self, func):
         self.option_dict['default'] = func
 
+class terrible_knn_classifier:
+    def fit(self, data_target, data_train):
+        return terrible_knn_model(data_target, data_train)
+
+
+class terrible_knn_model:
+
+    def __init__(self, data_target, data_train):
+        self.data_target = data_target
+        self.data_train = data_train
+        self.data_points = len(data_train)
+
+    def predict(self, test_data, k):
+
+        test_results = list()
+        neighbor_list = list()
+
+        for i in range(len(test_data)):
+            neighbor_list.append(list())
+
+        neighbor_list_sorted = list()
+        # First calculate the distances from every object
+        for i in range(len(test_data)):
+            for j in range(len(self.data_train)):
+                a = test_data[i]
+                b = self.data_train[j]
+                distance = n.linalg.norm(a - b)
+
+                pair = (distance, j)
+                neighbor_list[i].append(pair)
+
+            sorted_list = sorted(neighbor_list[i], key=itemgetter(0), reverse=False)
+            neighbor_list_sorted.append(sorted_list)
+        # Sort each list
+
+        # Cycle through k nearest neighbors
+        for i in range(len(test_data)):
+
+            dict_results = dict()
+            for j in range(k):
+
+                # Get the training values
+                target_index = neighbor_list_sorted[i][k][1]
+                target_value = self.data_target[target_index]
+
+                if target_value in dict_results:
+                    dict_results[target_value] += 1
+                else:
+                    dict_results[target_value] = 1
+
+            # Return a list of max dictionary results.
+            val = max(dict_results, key=dict_results.get)
+            test_results.append(val)
+
+        return test_results
 
 # k-nearest-neighbors
 class k_nearest_neighbors_model:
@@ -94,20 +96,14 @@ class k_nearest_neighbors_model:
 
     def predict(self, test_data, k, kd_tree):
 
-        if kd_tree:
-            tree = KDTree(self.data_train, leaf_size=2)
-        else:
-            tree = Simple_NN(self.data_train)
+        tree = KDTree(self.data_train, leaf_size=2)
 
         test_results = list()
 
         # Cycle through every single test_data point
         for i in range(len(test_data)):
             # Get the list of k nearest neighbors
-            if kd_tree:
-                dist, ind = tree.query(test_data, k)
-            else:
-                dist, ind = tree.query(test_data[i], k)
+            dist, ind = tree.query(test_data, k)
 
             # ind returns a list of indexes for nearest neighbors.
             # Create a dictionary list of values for target values and number of knn who have it
@@ -204,6 +200,17 @@ def print_iris_data():
     print(iris.target_names)
     return 0
 
+def run_terrible_knn_test():
+    print("Running terrible KNN Test!")
+    k = 3
+    iris, data_train, data_test, targets_train, targets_test = setup_test()
+    classifier = terrible_knn_classifier()
+    model = classifier.fit(targets_train, data_train)
+    predicted = model.predict(data_test, k)
+    print("Percent correct: ", compare_prediction(targets_test, predicted), "%\n")
+    print("Test Finished")
+    return 0
+
 # Runs the k nearest neighbors tests
 def run_k_nearest_neighbors_test():
     print("Running K Nearest Neighbors Test!")
@@ -260,7 +267,7 @@ def get_option():
 
 def help():
     print("Choose option [quit] to quit, option [hardcoded] to run the hardcoded test, option [gussian] "
-          "to run the gussian test, option [knn] to run k-nearest neighbors test, and option [print] to print "
+          "to run the gussian test, option[terrible_knn] to run the poor knn test, option [knn] to run k-nearest neighbors test, and option [print] to print "
           "Iris data.")
     return 0
 
@@ -279,6 +286,7 @@ def initialize_program(options):
     options.add_option("help", help)
     options.add_option("quit", end_program)
     options.add_option("knn", run_k_nearest_neighbors_test)
+    options.add_option("terrible_knn", run_terrible_knn_test)
     options.set_default_option(default_msg)
 
 
