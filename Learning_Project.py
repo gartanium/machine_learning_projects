@@ -202,7 +202,7 @@ def print_iris_data():
 
 def run_terrible_knn_test():
     print("Running terrible KNN Test!")
-    k = 3
+    k = int(input("Select a value for k: "))
     iris, data_train, data_test, targets_train, targets_test = setup_test()
     classifier = terrible_knn_classifier()
     model = classifier.fit(targets_train, data_train)
@@ -214,7 +214,7 @@ def run_terrible_knn_test():
 # Runs the k nearest neighbors tests
 def run_k_nearest_neighbors_test():
     print("Running K Nearest Neighbors Test!")
-    k=9
+    k = int(input("Select a value for k: "))
     iris, data_train, data_test, targets_train, targets_test = setup_test()
     classifier = K_Nearest_Neighbors_Classifier()
     model = classifier.fit(targets_train, data_train)
