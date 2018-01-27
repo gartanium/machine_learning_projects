@@ -4,12 +4,15 @@ from sklearn import datasets
 from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KDTree
+from sklearn.neighbors import KNeighborsClassifier
 import numpy as n
 import bisect
 from operator import itemgetter
+from pandas import read_csv
+
 
 # Class for running an option whenever a specified word is passed in.
-class Option:
+class Tests:
     def __init__(self):
         self.option_dict = dict()
 
@@ -22,9 +25,63 @@ class Option:
         else:
             return self.option_dict['default']()
 
+    def load_car_data(self):
+
+        headers = ["buying", "maint", "doors", "persons", "lug_boot", "safety", "values"]
+
+        df = read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data',
+                         names=headers, na_values=" ?")
+
+        cleanup_nums_buying = {"buying": {"vhigh": 1, "high": .75, "med": .5, "low": .25 }}
+        cleanup_nums_maint = {"maint": {"vhigh": 1, "high": .75, "med": .5, "low": .25 }}
+        cleanup_nums_doors = {"doors": {"2" : .25, "3" : .5, "4" : .75, "5more" : 1}}
+        cleanup_nums_persons = {"persons": {"more" : 1, "2" : .5, "4": .75}}
+        cleanup_nums_lug_boot = {"lug_boot": {"small" : 0.33, "med": 0.66, "big": 1}}
+        cleanup_nums_safety = {"safety": {"low": .33, "med": .66, "high": 1}}
+        cleanup_nums_value = {"values": {"vgood": 1, "good": 2, "acc": 3, "unacc": 4}}
+        #cleanup_nums = {"education":     {"12k": 1, "Some-college" : 2, "Grad" : 3}}
+
+        df.replace(cleanup_nums_buying, inplace=True)
+        df.replace(cleanup_nums_maint, inplace=True)
+        df.replace(cleanup_nums_doors, inplace=True)
+        df.replace(cleanup_nums_persons, inplace=True)
+        df.replace(cleanup_nums_lug_boot, inplace=True)
+        df.replace(cleanup_nums_safety, inplace=True)
+        df.replace(cleanup_nums_value, inplace=True)
+
+
+        print(df.dtypes)
+        print(df.head(5))
+
+        car_target = df['values']
+        car_data = df.drop('values', axis=1)
+        print(car_data)
+
+        self.data_train, self.data_test, self.targets_train, self.targets_test = train_test_split(car_data, car_target, test_size=0.33, random_state=46)
+
+        print("Lengths of: ", len(self.data_train), len(self.data_test), len(self.targets_train), len(self.targets_test))
+
+
+
+        return 0
+
+    def knn_kdt_test(self):
+        print("Running K Nearest Neighbors Test!")
+        k = int(input("Select a value for k: "))
+        classifier =  KNeighborsClassifier(k)
+
+        print("Lengths of 2: ", len(self.data_train), len(self.targets_train))
+        model = classifier.fit( self.data_train, self.targets_train,)
+        predicted = model.predict(self.data_test)
+        print("Percent correct: ", compare_prediction(self.targets_test.as_matrix() , predicted), "%\n")
+        print("Test Finished")
+        return 0
+
+
     # default option to be executed when an improper option is given
     def set_default_option(self, func):
         self.option_dict['default'] = func
+
 
 class terrible_knn_classifier:
     def fit(self, data_target, data_train):
@@ -151,7 +208,6 @@ class HardCodedModel:
         rObj = list()
         for i in range(len(test_data)):
             rObj.append(0)
-
         return rObj
 
 
@@ -165,12 +221,12 @@ class HardCodedClassifier:
 # Compares the false answers to the correct ones.
 def compare_prediction(target, prediction):
     length = len(target)
+    length2 = len(prediction)
     false_count = 0
     for i in range(length):
         if target[i] != prediction[i]:
             false_count += 1
     return float(length - false_count) * 100 / length
-
 
 # Setups the iris data to be used by other functions
 def setup_iris_data():
@@ -211,6 +267,7 @@ def run_terrible_knn_test():
     print("Test Finished")
     return 0
 
+
 # Runs the k nearest neighbors tests
 def run_k_nearest_neighbors_test():
     print("Running K Nearest Neighbors Test!")
@@ -222,6 +279,7 @@ def run_k_nearest_neighbors_test():
     print("Percent correct: ", compare_prediction(targets_test, predicted), "%\n")
     print("Test Finished")
     return 0
+
 
 # Runs the hard coded test, which we expect to get very poor results
 def run_hardcode_test():
@@ -278,26 +336,30 @@ def end_program():
 
 
 # Initializes the program
-def initialize_program(options):
+def initialize_program(tests):
+
+
     print("Welcome to Iris classifier 1.0!")
-    options.add_option("hardcoded", run_hardcode_test)
-    options.add_option("gussian", run_gussian_test)
-    options.add_option("print", print_iris_data)
-    options.add_option("help", help)
-    options.add_option("quit", end_program)
-    options.add_option("knn", run_k_nearest_neighbors_test)
-    options.add_option("terrible_knn", run_terrible_knn_test)
-    options.set_default_option(default_msg)
+    tests.add_option("hardcoded", run_hardcode_test)
+    tests.add_option("gussian", run_gussian_test)
+    tests.add_option("print", print_iris_data)
+    tests.add_option("help", help)
+    tests.add_option("quit", end_program)
+    tests.add_option("knn", tests.knn_kdt_test)
+    tests.add_option("terrible_knn", run_terrible_knn_test)
+    tests.add_option("lc", tests.load_car_data)
+    tests.set_default_option(default_msg)
 
 
 # Main entry point for the application.
 def main():
-    options = Option()
-    initialize_program(options)
+
+    tests = Tests()
+    initialize_program(tests)
     quit = 0
 
     while quit == 0:
-        quit = execute_option(options)
+        quit = execute_option(tests)
 
 
 if __name__ == "__main__":
