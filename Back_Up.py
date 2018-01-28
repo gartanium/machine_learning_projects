@@ -5,7 +5,6 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KDTree
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.neighbors import KNeighborsRegressor
 import numpy as n
 import bisect
 from operator import itemgetter
@@ -25,50 +24,6 @@ class Tests:
             return self.option_dict[option]()
         else:
             return self.option_dict['default']()
-
-
-    def load_mpg_data(self):
-        headers = ["mpg", "cylidners", "displacement", "horse_power", "weight", "acceleration", "model_year", "origin", "car_name"]
-        df = read_csv(
-            'https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data',
-            names=headers, na_values="?", delim_whitespace=True)
-
-        df = df.fillna(df.mean())
-
-        print("Loaded the MPG data Set.")
-        print(df.head(5))
-
-        print("Object types: ", df.dtypes)
-
-        d_target = df['mpg']
-        d_data = df.drop('mpg', axis=1)
-        d_data = df.drop('car_name', axis=1)
-
-        self.data_train, self.data_test, self.targets_train, self.targets_test = \
-            train_test_split(d_data, d_target, test_size=0.33, random_state=46)
-
-        return 0
-
-
-    def load_diabetes_data(self):
-
-        headers = ["Pregnant", "g-conc", "b-pressure", "fold-thickness", "insulin", "bmi", "pedigree", "age", "class"]
-        df = read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/pima-indians-diabetes/pima-indians-diabetes.data',
-                      names=headers, na_values="0")
-        df = df.fillna(df.mean())
-
-        print("Loaded the Diabetes Data Set.")
-        print(df.head(5))
-
-        d_target = df['class']
-        d_data = df.drop('class', axis=1)
-
-        self.data_train, self.data_test, self.targets_train, self.targets_test = \
-            train_test_split(d_data, d_target, test_size=0.33, random_state=46)
-
-        return 0
-
-
 
     def load_car_data(self):
 
@@ -95,48 +50,30 @@ class Tests:
         df.replace(cleanup_nums_value, inplace=True)
 
 
-        print("Loaded the UCI Car Data Set.")
+        print(df.dtypes)
         print(df.head(5))
 
         car_target = df['values']
         car_data = df.drop('values', axis=1)
+        print(car_data)
 
         self.data_train, self.data_test, self.targets_train, self.targets_test = train_test_split(car_data, car_target, test_size=0.33, random_state=46)
+
+        print("Lengths of: ", len(self.data_train), len(self.data_test), len(self.targets_train), len(self.targets_test))
+
+
 
         return 0
 
     def knn_kdt_test(self):
-        print("Running K Nearest Neighbors Test!\n")
+        print("Running K Nearest Neighbors Test!")
         k = int(input("Select a value for k: "))
         classifier =  KNeighborsClassifier(k)
 
+        print("Lengths of 2: ", len(self.data_train), len(self.targets_train))
         model = classifier.fit( self.data_train, self.targets_train,)
         predicted = model.predict(self.data_test)
         print("Percent correct: ", compare_prediction(self.targets_test.as_matrix() , predicted), "%\n")
-        print("Test Finished")
-        return 0
-
-    def knn_reg(self):
-        print("Running K Nearest Neighbors Regression Test!\n")
-        k = int(input("Select a value for k: "))
-        variance = float(input("Select an acceptable variance: "))
-        classifier = KNeighborsRegressor(k)
-
-        model = classifier.fit(self.data_train, self.targets_train)
-
-        predicted = model.predict(self.data_test)
-        print("Percent correct: ", compare_prediction_variance(self.targets_test.as_matrix(), predicted, variance), "%\n")
-        print("Test Finished")
-        return 0
-
-    def knn_brute_force(self):
-
-        print("Running terrible KNN Test!")
-        k = int(input("Select a value for k: "))
-        classifier = terrible_knn_classifier()
-        model = classifier.fit(self.targets_train.as_matrix(), self.data_train.as_matrix())
-        predicted = model.predict(self.data_test, k)
-        print("Percent correct: ", compare_prediction(self.targets_test.as_matrix(), predicted), "%\n")
         print("Test Finished")
         return 0
 
@@ -291,17 +228,6 @@ def compare_prediction(target, prediction):
             false_count += 1
     return float(length - false_count) * 100 / length
 
-def compare_prediction_variance(target, prediction, variance):
-    length = len(target)
-    length2 = len(prediction)
-    false_count = 0
-    for i in range(length):
-        max = target[i] + variance
-        min = target[i] - variance
-        if prediction[i] < min or prediction[i] > max:
-            false_count += 1
-    return float(length - false_count) * 100 / length
-
 # Setups the iris data to be used by other functions
 def setup_iris_data():
     iris = datasets.load_iris()
@@ -330,7 +256,16 @@ def print_iris_data():
     print(iris.target_names)
     return 0
 
-
+def run_terrible_knn_test():
+    print("Running terrible KNN Test!")
+    k = int(input("Select a value for k: "))
+    iris, data_train, data_test, targets_train, targets_test = setup_test()
+    classifier = terrible_knn_classifier()
+    model = classifier.fit(targets_train, data_train)
+    predicted = model.predict(data_test, k)
+    print("Percent correct: ", compare_prediction(targets_test, predicted), "%\n")
+    print("Test Finished")
+    return 0
 
 
 # Runs the k nearest neighbors tests
@@ -389,17 +324,9 @@ def get_option():
 
 
 def help():
-    print("[quit]: Quit the program.\n"
-          "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[knnreg]: Run the knn regression test\n"
-          "[classification]: Sets the output of the test to classification\n"
-          "[knnbrute]: to run the hardcoded test.\n"
-          "[gussian]: to run the gussian test.\n"
-          "[terrible_knn]: to run the poor knn test.\n"
-          "[knn]: to run k-nearest neighbors test.\n"
-          "[print]: to print the iris data set.\n")
+    print("Choose option [quit] to quit, option [hardcoded] to run the hardcoded test, option [gussian] "
+          "to run the gussian test, option[terrible_knn] to run the poor knn test, option [knn] to run k-nearest neighbors test, and option [print] to print "
+          "Iris data.")
     return 0
 
 
@@ -413,17 +340,14 @@ def initialize_program(tests):
 
 
     print("Welcome to Iris classifier 1.0!")
-
+    tests.add_option("hardcoded", run_hardcode_test)
     tests.add_option("gussian", run_gussian_test)
     tests.add_option("print", print_iris_data)
     tests.add_option("help", help)
     tests.add_option("quit", end_program)
     tests.add_option("knn", tests.knn_kdt_test)
-    tests.add_option("knnbrute", tests.knn_brute_force)
+    tests.add_option("terrible_knn", run_terrible_knn_test)
     tests.add_option("lc", tests.load_car_data)
-    tests.add_option("ld", tests.load_diabetes_data)
-    tests.add_option("knnreg", tests.knn_reg)
-    tests.add_option("lmpg", tests.load_mpg_data)
     tests.set_default_option(default_msg)
 
 
