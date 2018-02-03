@@ -10,12 +10,54 @@ import numpy as n
 import bisect
 from operator import itemgetter
 from pandas import read_csv
+import math
 
 
 # Class for running an option whenever a specified word is passed in.
 class Tests:
+
+
+
     def __init__(self):
         self.option_dict = dict()
+        self.initialize_program()
+
+    # Initializes the program
+    def initialize_program(self):
+        print("Welcome to Matthew Brown's Machine Learning Project!")
+
+        self.add_option("gussian", run_gussian_test)
+        self.add_option("print", print_iris_data)
+        self.add_option("help", self.help)
+        self.add_option("quit", end_program)
+        self.add_option("knn", self.knn_kdt_test)
+        self.add_option("knnbrute", self.knn_brute_force)
+        self.add_option("lc", self.load_car_data)
+        self.add_option("ld", self.load_diabetes_data)
+        self.add_option("knnreg", self.knn_reg)
+        self.add_option("lmpg", self.load_mpg_data)
+        self.add_option("dtree", self.decision_tree)
+        self.set_default_option(self.default_msg)
+
+
+    def default_msg(self):
+        print("Improper command! Type the command [help] for help or [quit] to exit the program!")
+        return 0
+
+    def help(self):
+        print("[quit]: Quit the program.\n"
+            "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
+            "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
+            "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
+            "[knnreg]: Run the knn regression test\n"
+            "[classification]: Sets the output of the test to classification\n"
+            "[knnbrute]: to run the hardcoded test.\n"
+            "[gussian]: to run the gussian test.\n"
+            "[terrible_knn]: to run the poor knn test.\n"
+            "[knn]: to run k-nearest neighbors test.\n"
+            "[dtree]: to run the decsion tree test.\n"
+            "[print]: to print the iris data set.\n")
+        return 0
 
     def add_option(self, option, func):
         self.option_dict[option] = func
@@ -141,6 +183,17 @@ class Tests:
         return 0
 
 
+    def decision_tree(self):
+        print("Running decision tree Test!")
+
+        testObj = Decision_Tree_Classifier()
+        actual = testObj.entropy(5/14, 9/14)
+        print("Entroy Test P1= 5/14, P2 = 9/14, Expected = 0.9403, actual: ", actual)
+
+        print("Test Finished")
+        return 0
+
+
     # default option to be executed when an improper option is given
     def set_default_option(self, func):
         self.option_dict['default'] = func
@@ -257,6 +310,41 @@ class k_nearest_neighbors_model:
         return test_results
 
 
+class DT_Node:
+    def __init__(self, features, data, parent):
+        self.features = features
+        self.is_leaf = (len(features) == 1)
+        self.parent = parent
+
+    def set_left(self, node):
+        self.left = node
+
+    def set_right(self, node):
+        self.right = node
+
+class Decision_Tree:
+    def __init__(self):
+        pass
+
+
+class Decision_Tree_Classifier:
+
+
+
+    def fit(self, data_target, data_train):
+        return Decision_Tree_Model()
+
+    def entropy(self, p1, p2):
+        # Probability of set 1
+        # Probability of set 2
+        return (-1*p1*math.log(p1,2)) - (p2*math.log(p2,2))
+
+
+class Decision_Tree_Model:
+    def predict(self, test_data):
+        pass
+
+
 # K-Nearest-Neighbors-Classifier
 class K_Nearest_Neighbors_Classifier:
 
@@ -370,9 +458,6 @@ def run_gussian_test():
     return 0
 
 
-def default_msg():
-    print("Improper command! Type the command [help] for help or [quit] to exit the program!")
-    return 0
 
 
 # Executes a given option
@@ -384,23 +469,10 @@ def execute_option(options):
 
 # Gets the option from the user.
 def get_option():
-    print("Select an option! (enter the command help for help!)")
-    return input()
+    print("Select an option! (enter the command [help] for help or [quit] to quit!)")
+    return input("-> ")
 
 
-def help():
-    print("[quit]: Quit the program.\n"
-          "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
-          "[knnreg]: Run the knn regression test\n"
-          "[classification]: Sets the output of the test to classification\n"
-          "[knnbrute]: to run the hardcoded test.\n"
-          "[gussian]: to run the gussian test.\n"
-          "[terrible_knn]: to run the poor knn test.\n"
-          "[knn]: to run k-nearest neighbors test.\n"
-          "[print]: to print the iris data set.\n")
-    return 0
 
 
 def end_program():
@@ -408,30 +480,11 @@ def end_program():
     return 1
 
 
-# Initializes the program
-def initialize_program(tests):
-
-
-    print("Welcome to Iris classifier 1.0!")
-
-    tests.add_option("gussian", run_gussian_test)
-    tests.add_option("print", print_iris_data)
-    tests.add_option("help", help)
-    tests.add_option("quit", end_program)
-    tests.add_option("knn", tests.knn_kdt_test)
-    tests.add_option("knnbrute", tests.knn_brute_force)
-    tests.add_option("lc", tests.load_car_data)
-    tests.add_option("ld", tests.load_diabetes_data)
-    tests.add_option("knnreg", tests.knn_reg)
-    tests.add_option("lmpg", tests.load_mpg_data)
-    tests.set_default_option(default_msg)
-
 
 # Main entry point for the application.
 def main():
 
     tests = Tests()
-    initialize_program(tests)
     quit = 0
 
     while quit == 0:
