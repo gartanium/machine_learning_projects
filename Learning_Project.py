@@ -478,7 +478,7 @@ class Decision_Tree_Classifier:
         chosen_row = data_list[max_entropy_row_index]
 
         # Returns in the order of Entropy, data_list_left, target_list_left, data_list_right, target_list_right
-        return entropy_list[max_entropy_row_index], chosen_row[1], chosen_row[2], chosen_row[3], chosen_row[4]
+        return entropy_list[max_entropy_row_index], chosen_row[0], chosen_row[1], chosen_row[2], chosen_row[3]
 
 
     def get_attritube(self, feature_index, data):
