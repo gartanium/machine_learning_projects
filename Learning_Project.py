@@ -11,7 +11,7 @@ import bisect
 from operator import itemgetter
 from pandas import read_csv
 import math
-
+import statistics
 
 # Class for running an option whenever a specified word is passed in.
 class Tests:
@@ -37,6 +37,7 @@ class Tests:
         self.add_option("knnreg", self.knn_reg)
         self.add_option("lmpg", self.load_mpg_data)
         self.add_option("dtree", self.decision_tree)
+        self.add_option("utests", self.run_unit_tests)
         self.set_default_option(self.default_msg)
 
 
@@ -56,6 +57,7 @@ class Tests:
             "[terrible_knn]: to run the poor knn test.\n"
             "[knn]: to run k-nearest neighbors test.\n"
             "[dtree]: to run the decsion tree test.\n"
+            "[utests]: runs all unit tests.\n"
             "[print]: to print the iris data set.\n")
         return 0
 
@@ -184,15 +186,67 @@ class Tests:
 
 
     def decision_tree(self):
-        print("Running decision tree Test!")
 
-        testObj = Decision_Tree_Classifier()
-        actual = testObj.entropy(5/14, 9/14)
-        print("Entroy Test P1= 5/14, P2 = 9/14, Expected = 0.9403, actual: ", actual)
-
-        print("Test Finished")
         return 0
 
+    def run_unit_tests(self):
+
+        test_array = [[1, 3, 6], [0, 2, 5], [1, 4, 8], [0, 2, 5]]
+        test_target = [0, 1, 0, 1]
+
+        print("Running unit tests!")
+
+        print("Running decision tree Entropy Test!")
+        testObj = Decision_Tree_Classifier()
+        actual = testObj.entropy([5, 9])
+        print("Entroy Test P1= 5/14, P2 = 9/14, Expected = 0.9403, actual: ", actual)
+        print("Test Finished\n")
+
+        print("Running split_data test!")
+        testObj = Decision_Tree_Classifier()
+        target_data = [0, 0, 0, 1, 1, 1]
+        test_data = [[1], [2], [3], [4], [5], [6]]
+        attribute = 4
+        left_data, left_target, right_data, right_target = testObj.split_data(0, test_data, target_data, attribute)
+        print("Left_Data: ", left_data)
+        print("Left_Target: ", left_target)
+        print("Right_Data: ", right_data)
+        print("Right_Target: ", right_target)
+        print("Test Finished\n")
+
+        print("Running Column tree Entropy Test!")
+        testObj = Decision_Tree_Classifier()
+        actual = testObj.feature_entropy([0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0])
+        print("Entroy Test P1= 5/14, P2 = 9/14, Expected = 0.9403, actual: ", actual)
+        print("Test Finished\n")
+
+        print("Running Attribute test!")
+        testObj = Decision_Tree_Classifier()
+
+        test_data = [[0, 1, 2], [1, 1, 2], [2, 1, 2], [3, 1, 2], [4, 1, 2], [5, 1, 2]]
+        expected = 3
+
+        print("Actual: ", testObj.get_attritube(0, test_data))
+        print("Expected: ", expected)
+
+        test_data = [[1, 1, 2], [0, 2, 3], [1, 2, 3]]
+        print("Actual: ", testObj.get_attritube(0, test_data))
+        print("Expected: ", 1)
+        print("Test Finished\n")
+
+        print("Running Best Feature Test")
+        testObj = Decision_Tree_Classifier()
+
+        entropy, d_l, t_l, d_r, t_r = testObj.find_best_gain(test_array, test_target)
+        print("Test Finished\n")
+        print("Data Left: ", d_l)
+        print("Test Left: ", t_l)
+        print("Data Right: ", d_r)
+        print("Test Right: ", t_r)
+        print("Entropy: ", entropy)
+
+        print("Unit tests finished!/n")
+        return 0
 
     # default option to be executed when an improper option is given
     def set_default_option(self, func):
@@ -311,10 +365,12 @@ class k_nearest_neighbors_model:
 
 
 class DT_Node:
-    def __init__(self, features, data, parent):
-        self.features = features
-        self.is_leaf = (len(features) == 1)
+    def __init__(self, parent):
         self.parent = parent
+
+    def __init__(self, parent):
+        self.parent = parent
+
 
     def set_left(self, node):
         self.left = node
@@ -334,10 +390,127 @@ class Decision_Tree_Classifier:
     def fit(self, data_target, data_train):
         return Decision_Tree_Model()
 
-    def entropy(self, p1, p2):
+    # Calculates the entropy based on the number of occurences of a class in a list.
+    def entropy(self, class_list):
         # Probability of set 1
         # Probability of set 2
-        return (-1*p1*math.log(p1,2)) - (p2*math.log(p2,2))
+        size = len(class_list)
+        total = 0
+        pop_count = 0
+
+        for i in range(size):
+            pop_count += class_list[i]
+
+        for i in range(size):
+            p1 = class_list[i]/pop_count
+            total += (-1*p1*math.log(p1,2))
+
+        return total
+
+    # Splits data based off an attribute.
+    def split_data(self, feature_index, data, target_data, attribute):
+        # Step 1. Split the target_data based off the attribute and feature index
+            data_list_left = list()
+            target_list_left = list()
+            data_list_right = list()
+            target_list_right = list()
+
+            # Cycle through each feature and target, split based off attribute
+            for i in range(len(target_data)):
+                if data[i][feature_index] < attribute:
+                # List left keeps all less than
+                    data_list_left.append(data[i])
+                    target_list_left.append(target_data[i])
+                # List right keeps all greater than or equal to
+                else:
+                    data_list_right.append(data[i])
+                    target_list_right.append(target_data[i])
+
+            return data_list_left, target_list_left, data_list_right, target_list_right
+
+
+    # Calculates the entropy of a given column
+    def feature_entropy(self, target_data):
+
+        length = len(target_data)
+        target_dict = dict()
+
+        for i in range(length):
+
+            value = target_data[i]
+            if value in target_dict:
+                target_dict[value] += 1
+            else:
+                target_dict[value] = 1
+            class_list = [ v for v in target_dict.values()]
+
+        return self.entropy(class_list)
+
+    # Returns split data of best info gain.
+    # Returns in the order of Entropy, data_list_left, target_list_left, data_list_right, target_list_right
+    def find_best_gain(self, data, target_data):
+
+        data_list = list()
+
+        # Find Population count
+        pop_count = len(target_data)
+        entropy_list = list()
+
+        feature_count = len(data[0])
+        # Calculate the information gain for each item
+        for i in range(feature_count):
+            # Split the data
+            attribute = self.get_attritube(i, data)
+            data_list_left, target_list_left, data_list_right, target_list_right = self.split_data(i, data, target_data, attribute)
+            # Calculate Entropy
+            entropy_left = self.feature_entropy(target_list_left)
+            entropy_right = self.feature_entropy(target_list_right)
+            entropy_left_pop = len(target_list_left) / pop_count
+            entropy_right_pop = len(target_list_right) / pop_count
+            entropy_combined = entropy_left*entropy_left_pop + entropy_right*entropy_right_pop
+            entropy_list.append(entropy_combined)
+            data_list.append([ data_list_left, target_list_left, data_list_right, target_list_right])
+            # Store information gain into a list.
+
+        max_value = max(entropy_list)
+        max_entropy_row_index =  entropy_list.index(max_value)
+
+        chosen_row = data_list[max_entropy_row_index]
+
+        # Returns in the order of Entropy, data_list_left, target_list_left, data_list_right, target_list_right
+        return entropy_list[max_entropy_row_index], chosen_row[1], chosen_row[2], chosen_row[3], chosen_row[4]
+
+
+    def get_attritube(self, feature_index, data):
+
+        row_count = len(data)
+        column_list = list()
+
+        for i in range(row_count):
+            column_list.append(data[i][feature_index])
+
+        #median = statistics.median(column_list)
+
+        s_list = sorted(column_list)
+
+        median = s_list[int(len(column_list)/2)]
+
+        return median
+
+    def build_node(self, parent, data, target_data, entropy):
+
+        if parent is None:
+            parent = DT_Node()
+
+        # If the number of features is 1, stop!
+        if len(target_data[0]) == 1:
+            return None
+        else:
+            combined_entropy, data_list_left, target_list_left, data_list_right, target_list_right = \
+                self.find_best_gain(data, target_data)
+
+
+
 
 
 class Decision_Tree_Model:
