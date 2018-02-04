@@ -426,6 +426,14 @@ class Decision_Tree_Classifier:
                     data_list_right.append(data[i])
                     target_list_right.append(target_data[i])
 
+            # Remove the feature just split
+            for row in data_list_left:
+                del row[feature_index]
+
+            for row in data_list_right:
+                del row[feature_index]
+
+
             return data_list_left, target_list_left, data_list_right, target_list_right
 
 
@@ -477,6 +485,8 @@ class Decision_Tree_Classifier:
 
         chosen_row = data_list[max_entropy_row_index]
 
+
+
         # Returns in the order of Entropy, data_list_left, target_list_left, data_list_right, target_list_right
         return entropy_list[max_entropy_row_index], chosen_row[0], chosen_row[1], chosen_row[2], chosen_row[3]
 
@@ -497,7 +507,7 @@ class Decision_Tree_Classifier:
 
         return median
 
-    def build_node(self, parent, data, target_data, entropy):
+    def build_tree(self, parent, data, target_data):
 
         if parent is None:
             parent = DT_Node()
@@ -509,6 +519,22 @@ class Decision_Tree_Classifier:
             combined_entropy, data_list_left, target_list_left, data_list_right, target_list_right = \
                 self.find_best_gain(data, target_data)
 
+            if combined_entropy == 0:
+                parent.data = target_data[0]
+                return parent
+
+            # TODO: MAKE SURE REMOVING FEATURES WORKS 100%!!!
+            left_child = DT_Node()
+            left_child.parent = parent
+            self.build_tree(left_child, data_list_left, target_list_left)
+            parent.set_left(left_child)
+
+            right_child = DT_Node()
+            right_child.parent = parent
+            self.build_tree(right_child, data_list_right, target_list_right)
+            parent.set_right(right_child)
+
+            return parent
 
 
 
