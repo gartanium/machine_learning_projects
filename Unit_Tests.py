@@ -1,4 +1,6 @@
 from Learning_Project import Decision_Tree_Classifier
+from Learning_Project import Tests
+from Learning_Project import DT_Node
 import math
 
 class unit_tests():
@@ -9,6 +11,41 @@ class unit_tests():
         self.add_test(self.column_tree_entropy_test, "Column_Tree_Entropy")
         self.add_test(self.attribute_test, "Attribute")
         self.add_test(self.best_feature_test, "Best Feature")
+        self.add_test(self.remove_feature_test, "Remove Feature Test")
+        self.add_test(self.same_val_test, "Same Val test!")
+        self.add_test(self.most_common_test, "Most Common Test")
+        self.add_test(self.build_tree_test, "Build Tree Test")
+        self.add_test(self.man_tree_test, "Man_Tree_Test")
+        self.add_test(self.comprehensive_tree_test, "Comprehensive tree test")
+
+    def man_tree_test(self):
+        test_obj = DT_Node()
+        test_obj.set_left(DT_Node())
+        test_obj.left.set_left(DT_Node())
+        test_obj.left.left.label = 2
+        return self.is_equal(test_obj.left.left.label, 2)
+
+
+    def comprehensive_tree_test(self):
+        program = Tests()
+        program.execute_option("ld")
+        test_obj = Decision_Tree_Classifier()
+        test_data, test_target = program.training_data_to_list()
+        tree_root = test_obj.build_tree_2(test_data, test_target)
+        test_obj.print_tree(tree_root)
+        return 0
+
+    def build_tree_test(self):
+        test_obj = Decision_Tree_Classifier()
+        test_data, test_target = self.setup_data()
+        tree_root = test_obj.build_tree_2(test_data, test_target)
+        return 0
+
+    def most_common_test(self):
+        test_obj = Decision_Tree_Classifier()
+        test_data = [1, 2, 3, 3, 2, 3]
+        actual = test_obj.most_common(test_data)
+        return self.is_equal(3, actual)
 
     def add_test(self, test, name):
         self.tests[name] = test
@@ -39,6 +76,13 @@ class unit_tests():
             print("\t\t\tStatement was false")
             return 0
 
+    def same_val_test(self):
+        test_obj = Decision_Tree_Classifier()
+        test_data = [1, 1, 2]
+        test_data2 = [1, 1, 1]
+
+        return self.is_true(test_obj.is_same_value(test_data2)) and not test_obj.is_same_value(test_data)
+
     def entropy_test(self):
         testObj = Decision_Tree_Classifier()
         actual = testObj.entropy([5, 9])
@@ -54,6 +98,12 @@ class unit_tests():
         left_data, left_target, right_data, right_target = testObj.split_data(0, test_data, target_data, attribute)
         return self.is_true(left_target == [0, 0, 0]) and left_data == [[1], [2], [3]] and right_target == [1, 1, 1] and right_data == [[4], [5], [6]]
 
+    def remove_feature_test(self):
+        test_array, test_target = self.setup_data()
+        testObj = Decision_Tree_Classifier()
+        test_array = testObj.remove_feature(test_array, 0)
+        return self.is_true(test_array == [[3, 6], [2, 5], [4, 8], [2, 5]])
+
     def column_tree_entropy_test(self):
         testObj = Decision_Tree_Classifier()
         actual = testObj.feature_entropy([0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0])
@@ -63,29 +113,29 @@ class unit_tests():
         testObj = Decision_Tree_Classifier()
 
         test_data = [[0, 1, 2], [1, 1, 2], [2, 1, 2], [3, 1, 2], [4, 1, 2], [5, 1, 2]]
-        expected = 3
+        expected_1 = 3
 
-        print("Actual: ", testObj.get_attritube(0, test_data))
-        print("Expected: ", expected)
+
+        actual_1 = testObj.get_attritube(0, test_data)
+
 
         test_data = [[1, 1, 2], [0, 2, 3], [1, 2, 3]]
-        print("Actual: ", testObj.get_attritube(0, test_data))
-        print("Expected: ", 1)
-        return 1
+        actual_2 = testObj.get_attritube(0, test_data)
+        expected_2 = 1
 
-    def best_feature_test(self):
-        testObj = Decision_Tree_Classifier()
+        return self.is_equal(actual_1, expected_1) and self.is_equal(actual_2, expected_2)
+
+    def setup_data(self):
         test_array = [[1, 3, 6], [0, 2, 5], [1, 4, 8], [0, 2, 5]]
         test_target = [0, 1, 0, 1]
-        #entropy, d_l, t_l, d_r, t_r = testObj.find_best_gain(test_array, test_target)
-        #print("Test Finished\n")
-        #print("Data Left: ", d_l)
-        #print("Test Left: ", t_l)
-        #print("Data Right: ", d_r)
-        #print("Test Right: ", t_r)
-        #print("Entropy: ", entropy)
+        return test_array, test_target
+
+    def best_feature_test(self):
+        test_obj = Decision_Tree_Classifier()
+        test_array, test_target = self.setup_data()
+        at, d_l, t_l, d_r, t_r = test_obj.find_best_gain(test_array, test_target)
+
         return 0
-        #return 1
 
 
 

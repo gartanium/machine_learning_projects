@@ -10,17 +10,25 @@ import numpy as n
 import bisect
 from operator import itemgetter
 from pandas import read_csv
+import pandas
 import math
+import copy
 import statistics
 
 # Class for running an option whenever a specified word is passed in.
 class Tests:
 
 
-
     def __init__(self):
         self.option_dict = dict()
         self.initialize_program()
+
+    def training_data_to_list(self):
+
+        list_data = self.data_test.values.tolist()
+        list_target = self.targets_test.values.tolist()
+
+        return list_data, list_target
 
     # Initializes the program
     def initialize_program(self):
@@ -99,13 +107,16 @@ class Tests:
         headers = ["Pregnant", "g-conc", "b-pressure", "fold-thickness", "insulin", "bmi", "pedigree", "age", "class"]
         df = read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/pima-indians-diabetes/pima-indians-diabetes.data',
                       names=headers, na_values="0")
-        df = df.fillna(df.mean())
+
+        d_target = df['class']
+
+        d_data = df.drop('class', axis=1)
+        d_data = d_data.fillna(df.mean())
+        d_target = d_target.fillna(0)
 
         print("Loaded the Diabetes Data Set.")
         print(df.head(5))
 
-        d_target = df['class']
-        d_data = df.drop('class', axis=1)
 
         self.data_train, self.data_test, self.targets_train, self.targets_test = \
             train_test_split(d_data, d_target, test_size=0.33, random_state=46)
@@ -369,16 +380,32 @@ class k_nearest_neighbors_model:
 class DT_Node:
     def __init__(self, parent):
         self.parent = parent
+        self.label = -1
+        self.left = None
+        self.right = None
+        self.attribute = -1
 
-    def __init__(self, parent):
-        self.parent = parent
-
+    def __init__(self):
+        self.parent = None
+        self.label = -1
+        self.left = None
+        self.right = None
+        self.attribute = -1
 
     def set_left(self, node):
         self.left = node
+        node.parent = self
 
     def set_right(self, node):
         self.right = node
+        node.parent = self
+
+    def print_data(self):
+        if self.label == -1:
+           return "A: ", self.attribute
+        else:
+            return "L: ", self.label
+
 
 class Decision_Tree:
     def __init__(self):
@@ -387,7 +414,8 @@ class Decision_Tree:
 
 class Decision_Tree_Classifier:
 
-
+    def __init__(self):
+        self.counter = 0
 
     def fit(self, data_target, data_train):
         return Decision_Tree_Model()
@@ -428,21 +456,24 @@ class Decision_Tree_Classifier:
                     data_list_right.append(data[i])
                     target_list_right.append(target_data[i])
 
-            # Remove the feature just split
-            for row in data_list_left:
-                del row[feature_index]
-
-            for row in data_list_right:
-                del row[feature_index]
-
-
             return data_list_left, target_list_left, data_list_right, target_list_right
 
 
+    def remove_feature(self, data_list, feature_index):
+
+        # Remove the feature just split
+        for row in data_list:
+            del row[feature_index]
+
+        return data_list
 
 
+        return data_list_left, target_list_left, data_list_right, target_list_right
     # Calculates the entropy of a given column
     def feature_entropy(self, target_data):
+
+        if len(target_data) == 0:
+            return 0
 
         length = len(target_data)
         target_dict = dict()
@@ -463,7 +494,7 @@ class Decision_Tree_Classifier:
     def find_best_gain(self, data, target_data):
 
         data_list = list()
-
+        attribute_list = list()
         # Find Population count
         pop_count = len(target_data)
         entropy_list = list()
@@ -473,6 +504,7 @@ class Decision_Tree_Classifier:
         for i in range(feature_count):
             # Split the data
             attribute = self.get_attritube(i, data)
+            attribute_list.append(attribute)
             data_list_left, target_list_left, data_list_right, target_list_right = self.split_data(i, data, target_data, attribute)
             # Calculate Entropy
             entropy_left = self.feature_entropy(target_list_left)
@@ -489,10 +521,11 @@ class Decision_Tree_Classifier:
 
         chosen_row = data_list[max_entropy_row_index]
 
-
+        data_list_left = self.remove_feature(data_list_left, max_entropy_row_index)
+        data_list_right = self.remove_feature(data_list_right, max_entropy_row_index)
 
         # Returns in the order of Entropy, data_list_left, target_list_left, data_list_right, target_list_right
-        return entropy_list[max_entropy_row_index], chosen_row[0], chosen_row[1], chosen_row[2], chosen_row[3]
+        return attribute_list[max_entropy_row_index], chosen_row[0], chosen_row[1], chosen_row[2], chosen_row[3]
 
 
     def get_attritube(self, feature_index, data):
@@ -510,6 +543,56 @@ class Decision_Tree_Classifier:
         median = s_list[int(len(column_list)/2)]
 
         return median
+
+    def most_common(self, list):
+        return max(set(list), key=list.count)
+
+    # Code taken from : https://stackoverflow.com/questions/1894846/printing-bfs-binary-tree-in-level-order-with-specific-formatting
+    # built-in data structure we can use as a queue
+    def print_tree(self, root):
+        list = [root]
+        while len(list) > 0:
+            print ([e.print_data() for e in list])
+            list = [e.left for e in list if e.left] + \
+                   [e.right for e in list if e.right]
+
+    def build_tree_2(self, data, target_data):
+        node = DT_Node()
+        #Cycle through every single node in target. if it is positive or all negative, return true.
+        # BUG IF TARGET DATA IS EMPTY!
+        if len(data) == 0:
+            node.label = -2
+            return node
+
+        if self.is_same_value(target_data):
+            node.label = target_data[0]
+            return node
+
+        if len(data[0]) == 0:
+            node.label = self.most_common(target_data)
+            return node
+
+        # Now split the data
+        at, d_left, t_left, d_right, t_right = self.find_best_gain(copy.deepcopy(data), copy.deepcopy(target_data))
+
+        node.attribute = at
+
+        node.set_left(self.build_tree_2(d_left, t_left))
+        node.set_right(self.build_tree_2(d_right, t_right))
+
+        return node
+
+    def is_same_value(self, list):
+        if len(list) == 0:
+            return 0
+
+        val = list[0]
+        for i in range(len(list)):
+            if list[i] == val:
+                continue
+            else:
+                return False
+        return True
 
     def build_tree(self, parent, data, target_data):
 
