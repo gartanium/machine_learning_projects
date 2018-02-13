@@ -46,6 +46,7 @@ class Tests:
         self.add_option("lmpg", self.load_mpg_data)
         self.add_option("dtree", self.decision_tree)
         self.add_option("utests", self.run_unit_tests)
+        self.add_option("dt", self.decision_tree_tests)
         self.set_default_option(self.default_msg)
 
 
@@ -55,6 +56,7 @@ class Tests:
 
     def help(self):
         print("[quit]: Quit the program.\n"
+            "[dt]: Builds a Decision Tree and prints a text version of it\n"
             "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
@@ -78,6 +80,12 @@ class Tests:
         else:
             return self.option_dict['default']()
 
+    def decision_tree_tests(self):
+        self.load_diabetes_data()
+        test_obj = Decision_Tree_Classifier()
+        test_data, test_target = self.training_data_to_list()
+        tree_root = test_obj.build_tree_2(test_data, test_target)
+        test_obj.print_tree(tree_root)
 
     def load_mpg_data(self):
         headers = ["mpg", "cylidners", "displacement", "horse_power", "weight", "acceleration", "model_year", "origin", "car_name"]
