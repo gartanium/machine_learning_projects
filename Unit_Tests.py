@@ -32,6 +32,12 @@ class unit_tests():
             print("\t\t\tActual: ", actual)
             return 0
 
+    def is_true(self, statement):
+        if statement is True:
+            return 1
+        else:
+            print("\t\t\tStatement was false")
+            return 0
 
     def entropy_test(self):
         testObj = Decision_Tree_Classifier()
@@ -46,17 +52,12 @@ class unit_tests():
         test_data = [[1], [2], [3], [4], [5], [6]]
         attribute = 4
         left_data, left_target, right_data, right_target = testObj.split_data(0, test_data, target_data, attribute)
-        print("Left_Data: ", left_data)
-        print("Left_Target: ", left_target)
-        print("Right_Data: ", right_data)
-        print("Right_Target: ", right_target)
-        return 1
+        return self.is_true(left_target == [0, 0, 0]) and left_data == [[1], [2], [3]] and right_target == [1, 1, 1] and right_data == [[4], [5], [6]]
 
     def column_tree_entropy_test(self):
         testObj = Decision_Tree_Classifier()
         actual = testObj.feature_entropy([0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0])
-        print("Entroy Test P1= 5/14, P2 = 9/14, Expected = 0.9403, actual: ", actual)
-        return 1
+        return self.is_equal(0.9403, actual)
 
     def attribute_test(self):
         testObj = Decision_Tree_Classifier()
