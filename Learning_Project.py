@@ -14,6 +14,109 @@ import pandas
 import math
 import copy
 import statistics
+from sklearn import preprocessing
+
+
+
+class Nueral_Net:
+
+    def print_map(self):
+        # For each layer
+        print("Map\n")
+        for i in range(len(self.net)):
+            row = ""
+            for j in range(len(self.net[i])):
+                row += " O "
+            row += " -1 "
+            print(row)
+
+    # Generate a blank map.
+    # Layer Data -> A list of elements. Element 0 correspsonding to layer 0.
+    def generate_map(self, layer_data, input_count, threshold):
+
+        self.net = list(list())
+
+        # Generate a layer for every single element in layer_Data, with given nueron count
+        layer_count = len(layer_data)
+        for i in range(layer_count): # For each layer we want to make
+            nueron_count = layer_data[i]
+            self.net.append(list())
+            for j in range(nueron_count): # For each node in each layer
+                # BIAS NODE
+                weight_count = 0
+                weights = list()
+                # + 1 for bias node
+                # Weight count is equal to the previous number of neurons in a given layer or the input count
+                if i == 0:
+                    weight_count = input_count + 1
+                else:
+                    weight_count = layer_data[i-1] + 1
+                for k in range(weight_count): # For each weight in each node
+                    weights.append(random.randint(0,10)/10)
+
+                output_node = 0
+                if i == layer_count - 1:
+                    output_node = 1
+
+                self.net[i].append(Nueron(threshold, weights, output_node))
+        self.print_map()
+
+    def process_data(self, features, targets):
+        results = list()
+        layer_count = len(self.net)
+        target_count = len(targets)
+        correct = 0
+        false = 0
+        # Each layer output becomes the next input.
+
+        # For every row of data
+        for i in range(target_count):
+            results.append(0)
+            list_layer_inputs = list(list())
+            list_layer_inputs.append(features[i])
+            # For every single layer...
+            for j in range(layer_count):
+                # Row of inputs corresponds to j were on.
+                row = list_layer_inputs[j]
+                row.append(-1) # Append a bias node value
+                # For every single Nueron
+                list_layer_inputs.append(list())
+                for k in range(len(self.net[j])):
+                    fire = self.net[j][k].attempt_fire(row)
+                    list_layer_inputs[j+1].append(fire)
+                    if j == layer_count -1:
+                      results[i] += fire
+        return results
+
+
+
+
+class Nueron:
+
+    def __init__(self, threshold, weight_list, output=0):
+        self.threshold = threshold
+        self.weights = weight_list
+        self.output = output
+
+    def set_weights(self, weights):
+        self.weights = weights
+
+    def attempt_fire(self, inputs):
+
+        sum = 0
+        for i in range(len(inputs)):
+            sum += inputs[i] * self.weights[i]
+
+        if self.output == 0:
+            activation = 1 / (1 + math.e**(-sum))
+            return activation
+        else:
+            if sum < self.threshold:
+                return 0
+            else:
+                return 1
+
+
 
 # Class for running an option whenever a specified word is passed in.
 class Tests:
@@ -34,6 +137,7 @@ class Tests:
     def initialize_program(self):
         print("Welcome to Matthew Brown's Machine Learning Project!")
 
+        self.add_option("nueral", self.run_nueral_net_test)
         self.add_option("gussian", run_gussian_test)
         self.add_option("print", print_iris_data)
         self.add_option("help", self.help)
@@ -56,6 +160,7 @@ class Tests:
 
     def help(self):
         print("[quit]: Quit the program.\n"
+            "[nueral]: Runs the Nueral Net Test\n"
             "[dt]: Builds a Decision Tree and prints a text version of it\n"
             "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
@@ -87,6 +192,8 @@ class Tests:
         tree_root = test_obj.build_tree_2(test_data, test_target)
         test_obj.print_tree(tree_root)
 
+
+
     def load_mpg_data(self):
         headers = ["mpg", "cylidners", "displacement", "horse_power", "weight", "acceleration", "model_year", "origin", "car_name"]
         df = read_csv(
@@ -110,6 +217,23 @@ class Tests:
         return 0
 
 
+    def load_iris_data_best(self):
+        print("Loading iris data!")
+        iris = setup_iris_data()
+
+
+        n_array = iris.data #numpy_array
+        min_max_scaler = preprocessing.MinMaxScaler()
+        array_scaled = min_max_scaler.fit_transform(n_array)
+        d_data = pandas.DataFrame(array_scaled)
+
+        self.data_train, self.data_test, self.targets_train, self.targets_test = \
+            train_test_split(d_data, iris.target, test_size=0.33, random_state=46)
+
+        print("Loaded the Iris Data Set!")
+        print(d_data.head(5))
+        return 0
+
     def load_diabetes_data(self):
 
         headers = ["Pregnant", "g-conc", "b-pressure", "fold-thickness", "insulin", "bmi", "pedigree", "age", "class"]
@@ -120,6 +244,13 @@ class Tests:
 
         d_data = df.drop('class', axis=1)
         d_data = d_data.fillna(df.mean())
+
+        # normalize le data
+        n_array = d_data.values #numpy_array
+        min_max_scaler = preprocessing.MinMaxScaler()
+        array_scaled = min_max_scaler.fit_transform(n_array)
+        d_data = pandas.DataFrame(array_scaled)
+
         d_target = d_target.fillna(0)
 
         print("Loaded the Diabetes Data Set.")
@@ -165,6 +296,22 @@ class Tests:
         car_data = df.drop('values', axis=1)
 
         self.data_train, self.data_test, self.targets_train, self.targets_test = train_test_split(car_data, car_target, test_size=0.33, random_state=46)
+
+        return 0
+
+
+    def run_nueral_net_test(self):
+        print("Running Nueral Net Test!\n")
+        self.execute_option("ld")
+        net = Nueral_Net()
+        net.generate_map([8, 4, 2], 8, 1.2)
+
+        data_list_train, data_list_target = self.training_data_to_list()
+
+        result = net.process_data(data_list_train, data_list_target)
+        print("Percent correct: ", result)
+
+        print("Test Finished")
 
         return 0
 
