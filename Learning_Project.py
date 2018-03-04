@@ -5,6 +5,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KDTree
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import multilayer_perceptron
 from sklearn.neighbors import KNeighborsRegressor
 import numpy as n
 import bisect
@@ -15,8 +16,9 @@ import math
 import copy
 import statistics
 from sklearn import preprocessing
+import csv
 
-
+from copy import deepcopy
 
 class Nueral_Net:
 
@@ -61,7 +63,30 @@ class Nueral_Net:
                 self.net[i].append(Nueron(threshold, weights, output_node))
         self.print_map()
 
-    def process_data(self, features, targets, learning_rate):
+    def process_data(self, features, targets, learning_rate, epoch_count):
+
+        percent_correct = 0
+        list_correct = list()
+
+        for i in range(epoch_count):
+            print("Starting Epoch: ", i)
+            f_copy = deepcopy(features)
+            targets_copy = deepcopy(targets)
+            results = self.process_epoch( f_copy, targets_copy, learning_rate)
+
+            correct = 0
+            for j in range(len(results)):
+                # Return first index with a 1
+                for k in range(len(results[0])):
+                    if results[j][k] == 1 and targets[j] == k:
+                        correct += 1
+            percent_correct = correct/len(targets)
+            list_correct.append(percent_correct)
+            print("Percent correct: ", percent_correct)
+        return n.asarray(list_correct)
+
+
+    def process_epoch(self, features, targets, learning_rate):
         results = list()
         layer_count = len(self.net)
         target_count = len(targets)
@@ -116,7 +141,7 @@ class Nueral_Net:
                     # For each weight in the layer
                     weight_count = len(self.net[reverse_index][k].weights)
                     for l in range(weight_count):
-                        activation = list_layer_inputs[reverse_index -1][l] # Weight activation is equal to the previous node's activation
+                        activation = list_layer_inputs[reverse_index][l] # Weight activation is equal to the previous node's activation
                         self.net[reverse_index][k].weights[l] = self.net[reverse_index][k].weights[l] - learning_rate*activation*self.net[reverse_index][k].error
                 # Update the Error rates of each Node
                 # If we are at the first layer, end loop
@@ -183,7 +208,6 @@ class Tests:
 
         list_data = self.data_test.values.tolist()
         list_target = self.targets_test.values.tolist()
-
         return list_data, list_target
 
     # Initializes the program
@@ -204,6 +228,7 @@ class Tests:
         self.add_option("dtree", self.decision_tree)
         self.add_option("utests", self.run_unit_tests)
         self.add_option("dt", self.decision_tree_tests)
+        self.add_option("li", self.load_iris_almost_best)
         self.set_default_option(self.default_msg)
 
 
@@ -217,6 +242,7 @@ class Tests:
             "[dt]: Builds a Decision Tree and prints a text version of it\n"
             "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
+            "[li]: Load Iris dataset."
             "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[knnreg]: Run the knn regression test\n"
             "[classification]: Sets the output of the test to classification\n"
@@ -273,8 +299,6 @@ class Tests:
     def load_iris_data_best(self):
         print("Loading iris data!")
         iris = setup_iris_data()
-
-
         n_array = iris.data #numpy_array
         min_max_scaler = preprocessing.MinMaxScaler()
         array_scaled = min_max_scaler.fit_transform(n_array)
@@ -283,8 +307,31 @@ class Tests:
         self.data_train, self.data_test, self.targets_train, self.targets_test = \
             train_test_split(d_data, iris.target, test_size=0.33, random_state=46)
 
+        self.targets_train = self.targets_train.tolist()
+        self.targets_test = self.targets_test.tolist()
+
         print("Loaded the Iris Data Set!")
         print(d_data.head(5))
+        return 0
+
+    def load_iris_almost_best(self):
+
+        headers = ["1", "2", "3", "4", "class"]
+        df = read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/iris/bezdekIris.data', names=headers, na_values="na")
+        d_target = df['class']
+        d_data = df.drop('class', axis=1)
+
+        cleanup_nums = {'class': {"Iris-setosa": 0, "Iris-versicolor": 1, "Iris-virginica": 2}}
+
+        d_target = d_target.replace(cleanup_nums, inplace=True)
+
+
+        self.data_train, self.data_test, self.targets_train, self.targets_test = \
+            train_test_split(d_data, d_target, test_size=0.33, random_state=46)
+
+        print(d_target.head(5))
+        print("Loaded Iris data set!")
+
         return 0
 
     def load_diabetes_data(self):
@@ -355,16 +402,30 @@ class Tests:
 
     def run_nueral_net_test(self):
         print("Running Nueral Net Test!\n")
-        self.execute_option("ld")
         net = Nueral_Net()
-        net.generate_map([8, 4, 2], 8, 1.2)
 
         data_list_train, data_list_target = self.training_data_to_list()
+        training_rate = float(input("Training Rate: "))
+        epoch = int(input("Epochs: "))
+        hidden_layer = int(input("Hidden Nodes: "))
+        file_name = input("Output file: ")
+        input_count = len(data_list_train[0])
+        net.generate_map([len(data_list_train[0]), hidden_layer, input_count], input_count, 1.2)
+        result = net.process_data(data_list_train, data_list_target, training_rate, epoch)
 
-        result = net.process_data(data_list_train, data_list_target, 0.1)
+        n.savetxt(file_name, result, delimiter=",")
+
+
         print("Percent correct: ", result)
 
         print("Test Finished")
+
+        net2 = multilayer_perceptron()
+
+        print("Running scilearn test!")
+
+
+        self.load_iris_data_best()
 
         return 0
 
