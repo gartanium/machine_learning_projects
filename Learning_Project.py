@@ -61,7 +61,7 @@ class Nueral_Net:
                 self.net[i].append(Nueron(threshold, weights, output_node))
         self.print_map()
 
-    def process_data(self, features, targets):
+    def process_data(self, features, targets, learning_rate):
         results = list()
         layer_count = len(self.net)
         target_count = len(targets)
@@ -71,7 +71,7 @@ class Nueral_Net:
 
         # For every row of data
         for i in range(target_count):
-            results.append(0)
+            results.append(list())
             list_layer_inputs = list(list())
             list_layer_inputs.append(features[i])
             # For every single layer...
@@ -85,7 +85,56 @@ class Nueral_Net:
                     fire = self.net[j][k].attempt_fire(row)
                     list_layer_inputs[j+1].append(fire)
                     if j == layer_count -1:
-                      results[i] += fire
+                      results[i].append(fire)
+
+            # Back propagation time.
+            # First update the error rates of every single output
+            list_expected = list()
+            out_layer_length = len(self.net[layer_count - 1])
+            # Create a list of 0's and put a 1 for which node we expect to fire.
+            # For each Nueron in the last layer
+            for j in range(out_layer_length):
+                if j == targets[i]:
+                    list_expected.append(1)
+                else:
+                    list_expected.append(0)
+
+            # For each node, it's Expected target value is found in list_expected
+            for j in range(out_layer_length):
+                nueron = self.net[layer_count - 1][j]
+                error = (nueron.activation - list_expected[j]) * (nueron.activation)*(1 - nueron.activation)
+                nueron.error = error
+
+            # For each layer
+            for j in range(len(self.net)):
+                # Update the weights
+                # Cycle through net in reverse order
+                reverse_index = layer_count - 1 - j
+                nueron_count = len(self.net[reverse_index])
+                # For each Nueron in the layer
+                for k in range(nueron_count):
+                    # For each weight in the layer
+                    weight_count = len(self.net[reverse_index][k].weights)
+                    for l in range(weight_count):
+                        activation = list_layer_inputs[reverse_index -1][l] # Weight activation is equal to the previous node's activation
+                        self.net[reverse_index][k].weights[l] = self.net[reverse_index][k].weights[l] - learning_rate*activation*self.net[reverse_index][k].error
+                # Update the Error rates of each Node
+                # If we are at the first layer, end loop
+                if reverse_index == 0:
+                    break
+                else:
+                    layer_to_update_index = reverse_index - 1
+                    # For each node in the layer to update
+                    nodes_in_layer = len(self.net[layer_to_update_index])
+                    for k in range(nodes_in_layer):
+                        node = self.net[layer_to_update_index][k]
+                        # For every single weight, in the k layer corresponding to this node, sum error * weight
+                        weight_error_sum = 0
+                        for l in range(nueron_count):
+                            weight_error_sum += self.net[reverse_index][l].weights[k] * self.net[reverse_index][l].error
+                        error_hidden_node = node.activation*(1-node.activation)*weight_error_sum
+                        node.error = error_hidden_node
+
         return results
 
 
@@ -97,6 +146,8 @@ class Nueron:
         self.threshold = threshold
         self.weights = weight_list
         self.output = output
+        self.activation = 0
+        self.error = 0
 
     def set_weights(self, weights):
         self.weights = weights
@@ -109,8 +160,10 @@ class Nueron:
 
         if self.output == 0:
             activation = 1 / (1 + math.e**(-sum))
+            self.activation = activation
             return activation
         else:
+            self.activation = 1 / (1 + math.e**(-sum))
             if sum < self.threshold:
                 return 0
             else:
@@ -308,7 +361,7 @@ class Tests:
 
         data_list_train, data_list_target = self.training_data_to_list()
 
-        result = net.process_data(data_list_train, data_list_target)
+        result = net.process_data(data_list_train, data_list_target, 0.1)
         print("Percent correct: ", result)
 
         print("Test Finished")
