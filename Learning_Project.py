@@ -5,6 +5,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.cross_validation import train_test_split
 from sklearn.neighbors import KDTree
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import multilayer_perceptron
 from sklearn.neighbors import KNeighborsRegressor
 import numpy as n
 import bisect
@@ -14,6 +15,186 @@ import pandas
 import math
 import copy
 import statistics
+from sklearn import preprocessing
+import csv
+
+from copy import deepcopy
+
+class Nueral_Net:
+
+    def print_map(self):
+        # For each layer
+        print("Map\n")
+        for i in range(len(self.net)):
+            row = ""
+            for j in range(len(self.net[i])):
+                row += " O "
+            row += " -1 "
+            print(row)
+
+    # Generate a blank map.
+    # Layer Data -> A list of elements. Element 0 correspsonding to layer 0.
+    def generate_map(self, layer_data, input_count, threshold):
+
+        self.net = list(list())
+
+        # Generate a layer for every single element in layer_Data, with given nueron count
+        layer_count = len(layer_data)
+        for i in range(layer_count): # For each layer we want to make
+            nueron_count = layer_data[i]
+            self.net.append(list())
+            for j in range(nueron_count): # For each node in each layer
+                # BIAS NODE
+                weight_count = 0
+                weights = list()
+                # + 1 for bias node
+                # Weight count is equal to the previous number of neurons in a given layer or the input count
+                if i == 0:
+                    weight_count = input_count + 1
+                else:
+                    weight_count = layer_data[i-1] + 1
+                for k in range(weight_count): # For each weight in each node
+                    weights.append(random.randint(0,10)/10)
+
+                output_node = 0
+                if i == layer_count - 1:
+                    output_node = 1
+
+                self.net[i].append(Nueron(threshold, weights, output_node))
+        self.print_map()
+
+    def process_data(self, features, targets, learning_rate, epoch_count):
+
+        percent_correct = 0
+        list_correct = list()
+
+        for i in range(epoch_count):
+            print("Starting Epoch: ", i)
+            f_copy = deepcopy(features)
+            targets_copy = deepcopy(targets)
+            results = self.process_epoch( f_copy, targets_copy, learning_rate)
+
+            correct = 0
+            for j in range(len(results)):
+                # Return first index with a 1
+                for k in range(len(results[0])):
+                    if results[j][k] == 1 and targets[j] == k:
+                        correct += 1
+            percent_correct = correct/len(targets)
+            list_correct.append(percent_correct)
+            print("Percent correct: ", percent_correct)
+        return n.asarray(list_correct)
+
+
+    def process_epoch(self, features, targets, learning_rate):
+        results = list()
+        layer_count = len(self.net)
+        target_count = len(targets)
+        correct = 0
+        false = 0
+        # Each layer output becomes the next input.
+
+        # For every row of data
+        for i in range(target_count):
+            results.append(list())
+            list_layer_inputs = list(list())
+            list_layer_inputs.append(features[i])
+            # For every single layer...
+            for j in range(layer_count):
+                # Row of inputs corresponds to j were on.
+                row = list_layer_inputs[j]
+                row.append(-1) # Append a bias node value
+                # For every single Nueron
+                list_layer_inputs.append(list())
+                for k in range(len(self.net[j])):
+                    fire = self.net[j][k].attempt_fire(row)
+                    list_layer_inputs[j+1].append(fire)
+                    if j == layer_count -1:
+                      results[i].append(fire)
+
+            # Back propagation time.
+            # First update the error rates of every single output
+            list_expected = list()
+            out_layer_length = len(self.net[layer_count - 1])
+            # Create a list of 0's and put a 1 for which node we expect to fire.
+            # For each Nueron in the last layer
+            for j in range(out_layer_length):
+                if j == targets[i]:
+                    list_expected.append(1)
+                else:
+                    list_expected.append(0)
+
+            # For each node, it's Expected target value is found in list_expected
+            for j in range(out_layer_length):
+                nueron = self.net[layer_count - 1][j]
+                error = (nueron.activation - list_expected[j]) * (nueron.activation)*(1 - nueron.activation)
+                nueron.error = error
+
+            # For each layer
+            for j in range(len(self.net)):
+                # Update the weights
+                # Cycle through net in reverse order
+                reverse_index = layer_count - 1 - j
+                nueron_count = len(self.net[reverse_index])
+                # For each Nueron in the layer
+                for k in range(nueron_count):
+                    # For each weight in the layer
+                    weight_count = len(self.net[reverse_index][k].weights)
+                    for l in range(weight_count):
+                        activation = list_layer_inputs[reverse_index][l] # Weight activation is equal to the previous node's activation
+                        self.net[reverse_index][k].weights[l] = self.net[reverse_index][k].weights[l] - learning_rate*activation*self.net[reverse_index][k].error
+                # Update the Error rates of each Node
+                # If we are at the first layer, end loop
+                if reverse_index == 0:
+                    break
+                else:
+                    layer_to_update_index = reverse_index - 1
+                    # For each node in the layer to update
+                    nodes_in_layer = len(self.net[layer_to_update_index])
+                    for k in range(nodes_in_layer):
+                        node = self.net[layer_to_update_index][k]
+                        # For every single weight, in the k layer corresponding to this node, sum error * weight
+                        weight_error_sum = 0
+                        for l in range(nueron_count):
+                            weight_error_sum += self.net[reverse_index][l].weights[k] * self.net[reverse_index][l].error
+                        error_hidden_node = node.activation*(1-node.activation)*weight_error_sum
+                        node.error = error_hidden_node
+
+        return results
+
+
+
+
+class Nueron:
+
+    def __init__(self, threshold, weight_list, output=0):
+        self.threshold = threshold
+        self.weights = weight_list
+        self.output = output
+        self.activation = 0
+        self.error = 0
+
+    def set_weights(self, weights):
+        self.weights = weights
+
+    def attempt_fire(self, inputs):
+
+        sum = 0
+        for i in range(len(inputs)):
+            sum += inputs[i] * self.weights[i]
+
+        if self.output == 0:
+            activation = 1 / (1 + math.e**(-sum))
+            self.activation = activation
+            return activation
+        else:
+            self.activation = 1 / (1 + math.e**(-sum))
+            if sum < self.threshold:
+                return 0
+            else:
+                return 1
+
+
 
 # Class for running an option whenever a specified word is passed in.
 class Tests:
@@ -27,13 +208,13 @@ class Tests:
 
         list_data = self.data_test.values.tolist()
         list_target = self.targets_test.values.tolist()
-
         return list_data, list_target
 
     # Initializes the program
     def initialize_program(self):
         print("Welcome to Matthew Brown's Machine Learning Project!")
 
+        self.add_option("nueral", self.run_nueral_net_test)
         self.add_option("gussian", run_gussian_test)
         self.add_option("print", print_iris_data)
         self.add_option("help", self.help)
@@ -47,6 +228,7 @@ class Tests:
         self.add_option("dtree", self.decision_tree)
         self.add_option("utests", self.run_unit_tests)
         self.add_option("dt", self.decision_tree_tests)
+        self.add_option("li", self.load_iris_almost_best)
         self.set_default_option(self.default_msg)
 
 
@@ -56,9 +238,11 @@ class Tests:
 
     def help(self):
         print("[quit]: Quit the program.\n"
+            "[nueral]: Runs the Nueral Net Test\n"
             "[dt]: Builds a Decision Tree and prints a text version of it\n"
             "[lc]: Load the car dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[ld]: Load diabetes dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
+            "[li]: Load Iris dataset."
             "[lmpg]: Load MPG dataset. NOTE, YOU MUST LOAD A SET BEFORE RUNNING A TEST!!!\n"
             "[knnreg]: Run the knn regression test\n"
             "[classification]: Sets the output of the test to classification\n"
@@ -87,6 +271,8 @@ class Tests:
         tree_root = test_obj.build_tree_2(test_data, test_target)
         test_obj.print_tree(tree_root)
 
+
+
     def load_mpg_data(self):
         headers = ["mpg", "cylidners", "displacement", "horse_power", "weight", "acceleration", "model_year", "origin", "car_name"]
         df = read_csv(
@@ -110,6 +296,44 @@ class Tests:
         return 0
 
 
+    def load_iris_data_best(self):
+        print("Loading iris data!")
+        iris = setup_iris_data()
+        n_array = iris.data #numpy_array
+        min_max_scaler = preprocessing.MinMaxScaler()
+        array_scaled = min_max_scaler.fit_transform(n_array)
+        d_data = pandas.DataFrame(array_scaled)
+
+        self.data_train, self.data_test, self.targets_train, self.targets_test = \
+            train_test_split(d_data, iris.target, test_size=0.33, random_state=46)
+
+        self.targets_train = self.targets_train.tolist()
+        self.targets_test = self.targets_test.tolist()
+
+        print("Loaded the Iris Data Set!")
+        print(d_data.head(5))
+        return 0
+
+    def load_iris_almost_best(self):
+
+        headers = ["1", "2", "3", "4", "class"]
+        df = read_csv('https://archive.ics.uci.edu/ml/machine-learning-databases/iris/bezdekIris.data', names=headers, na_values="na")
+        d_target = df['class']
+        d_data = df.drop('class', axis=1)
+
+        cleanup_nums = {'class': {"Iris-setosa": 0, "Iris-versicolor": 1, "Iris-virginica": 2}}
+
+        d_target = d_target.replace(cleanup_nums, inplace=True)
+
+
+        self.data_train, self.data_test, self.targets_train, self.targets_test = \
+            train_test_split(d_data, d_target, test_size=0.33, random_state=46)
+
+        print(d_target.head(5))
+        print("Loaded Iris data set!")
+
+        return 0
+
     def load_diabetes_data(self):
 
         headers = ["Pregnant", "g-conc", "b-pressure", "fold-thickness", "insulin", "bmi", "pedigree", "age", "class"]
@@ -120,6 +344,13 @@ class Tests:
 
         d_data = df.drop('class', axis=1)
         d_data = d_data.fillna(df.mean())
+
+        # normalize le data
+        n_array = d_data.values #numpy_array
+        min_max_scaler = preprocessing.MinMaxScaler()
+        array_scaled = min_max_scaler.fit_transform(n_array)
+        d_data = pandas.DataFrame(array_scaled)
+
         d_target = d_target.fillna(0)
 
         print("Loaded the Diabetes Data Set.")
@@ -165,6 +396,36 @@ class Tests:
         car_data = df.drop('values', axis=1)
 
         self.data_train, self.data_test, self.targets_train, self.targets_test = train_test_split(car_data, car_target, test_size=0.33, random_state=46)
+
+        return 0
+
+
+    def run_nueral_net_test(self):
+        print("Running Nueral Net Test!\n")
+        net = Nueral_Net()
+
+        data_list_train, data_list_target = self.training_data_to_list()
+        training_rate = float(input("Training Rate: "))
+        epoch = int(input("Epochs: "))
+        hidden_layer = int(input("Hidden Nodes: "))
+        file_name = input("Output file: ")
+        input_count = len(data_list_train[0])
+        net.generate_map([len(data_list_train[0]), hidden_layer, input_count], input_count, 1.2)
+        result = net.process_data(data_list_train, data_list_target, training_rate, epoch)
+
+        n.savetxt(file_name, result, delimiter=",")
+
+
+        print("Percent correct: ", result)
+
+        print("Test Finished")
+
+        net2 = multilayer_perceptron()
+
+        print("Running scilearn test!")
+
+
+        self.load_iris_data_best()
 
         return 0
 
